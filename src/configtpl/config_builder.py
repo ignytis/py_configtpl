@@ -1,4 +1,3 @@
-from copy import deepcopy
 import os.path
 import jinja2
 import yaml
@@ -13,8 +12,8 @@ class ConfigBuilder:
             **jinja_env_args,
         }
 
-    def build_from_files(self, paths_colon_separated: str | list[str], ctx: dict | None = None,
-                         overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
+    def build_from_files(self, paths_colon_separated: str | list[str], overrides: dict | None = None,
+                         directives_key: str | None = "@configtpl") -> dict:
         """
         Renders files from provided paths.
 
@@ -29,23 +28,22 @@ class ConfigBuilder:
             dict: The rendered configuration
         """
         output_cfg = {}
+        if overrides is None:
+            overrides = {}
 
         # Convert the path input into list of paths
-        paths_colon_separated: list[str] = list(paths_colon_separated) \
+        paths_colon_separated: list[str] = [paths_colon_separated] \
             if isinstance(paths_colon_separated, str) \
             else paths_colon_separated
         paths: list[str] = []
         for path_colon_separated in paths_colon_separated:
             paths += path_colon_separated.split(":")
 
-        ctx = deepcopy(ctx)
         while len(paths) > 0:
             cfg_path = os.path.realpath(paths.pop(0))
             cfg_dir = os.path.dirname(cfg_path)
-            cfg_iter: dict = self._render_jinja_yaml_config(cfg_path, ctx)
-            cfg_path = None
-
-            output_cfg = _dict_deep_merge(output_cfg, cfg_iter)
+            cfg_iter: dict = self._render_jinja_yaml_config(cfg_path, output_cfg)
+            # cfg_path = None
 
             # Apply the config lib directives
             directives: dict | None = cfg_iter.get(directives_key)
@@ -55,6 +53,8 @@ class ConfigBuilder:
                              for p in directives.get("load_next", [])]
                 paths += new_paths
                 del cfg_iter[directives_key]
+
+            output_cfg = _dict_deep_merge(output_cfg, cfg_iter)
 
         # Append overrides
         output_cfg = _dict_deep_merge(output_cfg, overrides)
