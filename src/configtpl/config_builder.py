@@ -24,6 +24,7 @@ class ConfigBuilder:
                 Examples: '/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg',
                 ['/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg']
             overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
+            directives_key (str | None): parameter key for library directives. If None, no directives will be processed
         Returns:
             dict: The rendered configuration
         """
