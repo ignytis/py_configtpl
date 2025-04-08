@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os.path
 import jinja2
 import yaml
@@ -12,8 +13,8 @@ class ConfigBuilder:
             **jinja_env_args,
         }
 
-    def build_from_files(self, paths_colon_separated: str | list[str], overrides: dict | None = None,
-                         directives_key: str | None = "@configtpl") -> dict:
+    def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
+                         overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
         """
         Renders files from provided paths.
 
@@ -28,7 +29,7 @@ class ConfigBuilder:
         Returns:
             dict: The rendered configuration
         """
-        output_cfg = {}
+        output_cfg = {} if defaults is None else deepcopy(defaults)
         if overrides is None:
             overrides = {}
 
@@ -40,11 +41,15 @@ class ConfigBuilder:
         for path_colon_separated in paths_colon_separated:
             paths += path_colon_separated.split(":")
 
+        loaded_configs = []
         while len(paths) > 0:
             cfg_path = os.path.realpath(paths.pop(0))
             cfg_dir = os.path.dirname(cfg_path)
+            if cfg_path in loaded_configs:
+                raise Exception(f"Attempt to load '{cfg_path}' config multiple times. An exception is thrown "
+                                "to prevent from infinite recursion")
             cfg_iter: dict = self._render_jinja_yaml_config(cfg_path, output_cfg)
-            # cfg_path = None
+            loaded_configs.append(cfg_path)
 
             # Apply the config lib directives
             directives: dict | None = cfg_iter.get(directives_key)

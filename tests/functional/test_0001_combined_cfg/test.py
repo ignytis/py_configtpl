@@ -30,6 +30,11 @@ class TestCombinedCfg(unittest.TestCase):
             "strategies": ["second"]  # lists are replaced (config_01 is replaced with config_02)
         }, cfg)
 
+    def test_recursion_exception(self):
+        with self.assertRaisesRegex(Exception, "Attempt to load '.+' config multiple times\\. "
+                                    "An exception is thrown to prevent from infinite recursion"):
+            ConfigBuilder().build_from_files("config_wrong_01_recursion_1.cfg:config_wrong_01_recursion_2.cfg")
+
 
 if __name__ == "__main__":
     unittest.main()
