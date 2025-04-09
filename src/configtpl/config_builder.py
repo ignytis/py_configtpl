@@ -3,15 +3,19 @@ import os.path
 import jinja2
 import yaml
 
+from configtpl.utils.dicts import dict_deep_merge
+from configtpl.jinja import globals as jinja_globals
+
 
 class ConfigBuilder:
     def __init__(self, jinja_env_args: dict = None):
         if jinja_env_args is None:
             jinja_env_args = {}
-        self.jinja_env_args = {
-            **_get_default_jinja_env_args(),
-            **jinja_env_args,
-        }
+        self.jinja_env_args = dict_deep_merge(
+            {
+                "undefined": jinja2.StrictUndefined,
+            },
+            jinja_env_args)
 
     def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
                          overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
@@ -24,6 +28,7 @@ class ConfigBuilder:
                 Additionally, each path might be colon-separated.
                 Examples: '/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg',
                 ['/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg']
+            defaults (dict | None): Default values for configuration
             overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
             directives_key (str | None): parameter key for library directives. If None, no directives will be processed
         Returns:
@@ -60,10 +65,10 @@ class ConfigBuilder:
                 paths += new_paths
                 del cfg_iter[directives_key]
 
-            output_cfg = _dict_deep_merge(output_cfg, cfg_iter)
+            output_cfg = dict_deep_merge(output_cfg, cfg_iter)
 
         # Append overrides
-        output_cfg = _dict_deep_merge(output_cfg, overrides)
+        output_cfg = dict_deep_merge(output_cfg, overrides)
 
         return output_cfg
 
@@ -75,35 +80,17 @@ class ConfigBuilder:
         """
         dir = os.path.dirname(path)
         filename = os.path.basename(path)
-        jinja_env = jinja2.Environment(**self.jinja_env_args, loader=jinja2.FileSystemLoader(dir))
+        jinja_env = self._create_fs_jinja_environment(dir)
         tpl = jinja_env.get_template(filename)
         tpl_rendered = tpl.render(ctx)
         return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
 
-
-def _get_default_jinja_env_args() -> dict:
-    return {
-        "undefined": jinja2.StrictUndefined,
-    }
-
-
-def _dict_deep_merge(*dicts: dict) -> dict:
-    """
-    Deep merge multiple dictionaries recursively.
-    Values in later dictionaries overwrite those in earlier ones.
-    This function does not update any dictionary by reference.
-    """
-    def merge_two_dicts(d1: dict, d2: dict):
-        merged = d1.copy()
-        for key, value in d2.items():
-            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
-                merged[key] = merge_two_dicts(merged[key], value)
-            else:
-                merged[key] = value
-        return merged
-
-    result = {}
-    for d in dicts:
-        result = merge_two_dicts(result, d)
-
-    return result
+    def _create_fs_jinja_environment(self, dir: str) -> jinja2.Environment:
+        """
+        Creates an instance of Jinja environment with filesystem loaded for provided directory
+        """
+        jinja_env = jinja2.Environment(**self.jinja_env_args, loader=jinja2.FileSystemLoader(dir))
+        jinja_env.globals.update({
+            "env": jinja_globals.jinja_global_env,
+        })
+        return jinja_env

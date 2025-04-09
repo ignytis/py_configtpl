@@ -22,7 +22,8 @@ if args.command == "tests:functional":
         test_path = os.path.join(dir, "test.py")
         print(f"Running '{test_path}'...")
         try:
-            result = subprocess.run([sys.executable, test_path], capture_output=True, text=True, cwd=dir, check=True)
+            result = subprocess.run([sys.executable, test_path], env={"SAMPLE_ENV_KEY": "sample_value"},
+                                    capture_output=True, text=True, cwd=dir, check=True)
         except subprocess.CalledProcessError as e:
             print(f"Test case failed with return code {e.returncode}")
             print(f"stdout: {e.stdout}")
