@@ -1,21 +1,16 @@
 from copy import deepcopy
 import os.path
-import jinja2
 import yaml
 
 from configtpl.utils.dicts import dict_deep_merge
-from configtpl.jinja import globals as jinja_globals
+from configtpl.jinja.env_factory import JinjaEnvFactory
 
 
 class ConfigBuilder:
-    def __init__(self, jinja_env_args: dict = None):
-        if jinja_env_args is None:
-            jinja_env_args = {}
-        self.jinja_env_args = dict_deep_merge(
-            {
-                "undefined": jinja2.StrictUndefined,
-            },
-            jinja_env_args)
+    def __init__(self, jinja_constructor_args: dict | None = None, jinja_globals: dict | None = None,
+                 jinja_filters: dict | None = None):
+        self.jinja_env_factory = JinjaEnvFactory(constructor_args=jinja_constructor_args, globals=jinja_globals,
+                                                 filters=jinja_filters)
 
     def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
                          overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
@@ -80,17 +75,7 @@ class ConfigBuilder:
         """
         dir = os.path.dirname(path)
         filename = os.path.basename(path)
-        jinja_env = self._create_fs_jinja_environment(dir)
+        jinja_env = self.jinja_env_factory.get_fs_jinja_environment(dir)
         tpl = jinja_env.get_template(filename)
         tpl_rendered = tpl.render(ctx)
         return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
-
-    def _create_fs_jinja_environment(self, dir: str) -> jinja2.Environment:
-        """
-        Creates an instance of Jinja environment with filesystem loaded for provided directory
-        """
-        jinja_env = jinja2.Environment(**self.jinja_env_args, loader=jinja2.FileSystemLoader(dir))
-        jinja_env.globals.update({
-            "env": jinja_globals.jinja_global_env,
-        })
-        return jinja_env
