@@ -1,5 +1,6 @@
 import jinja2
 
+from configtpl.jinja import filters as jinja_filters
 from configtpl.jinja import globals as jinja_globals
 from configtpl.utils.dicts import dict_deep_merge
 
@@ -21,12 +22,15 @@ class JinjaEnvFactory:
         )
         self._globals = dict_deep_merge(
             {
+                "cmd": jinja_globals.jinja_global_cmd,
                 "env": jinja_globals.jinja_global_env,
             },
             {} if globals is None else globals,
         )
         self._filters = dict_deep_merge(
-            {},
+            {
+                "split_space": jinja_filters.jinja_filter_split_space,
+            },
             {} if globals is None else globals,
         )
 

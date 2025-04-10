@@ -16,14 +16,21 @@ class TestStdFunccs(unittest.TestCase):
         cfg = ConfigBuilder().build_from_files("config.cfg")
 
         self.assertDictEqual({
+            # "greetings" is based on output of a system command splitted by line break
+            # TODO: does it works on Windows! Perhaps another test is needed. As an option - OS check
+            "greetings": [
+                "Hello, First!",
+                "Hello, Second!",
+                "Hello, Third!",
+            ],
+            "server": {
+                "host": "example.com",
+                "port": 1234,
+            },
             "urls": {
                 "base": "example.com",
                 "subdomain": "sample_value.example.com",
             },
-            "server": {
-                "host": "example.com",
-                "port": 1234,
-            }
         }, cfg)
 
 

@@ -20,7 +20,8 @@ if args.command == "tests:functional":
             continue
 
         test_path = os.path.join(dir, "test.py")
-        print(f"Running '{test_path}'...")
+        test_path_relative = test_path[len(root_dir)+1:]
+        print(f"Running '{test_path_relative}'...")
         try:
             result = subprocess.run([sys.executable, test_path], env={"SAMPLE_ENV_KEY": "sample_value"},
                                     capture_output=True, text=True, cwd=dir, check=True)
