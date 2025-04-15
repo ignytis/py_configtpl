@@ -23,14 +23,21 @@ class JinjaEnvFactory:
         self._globals = dict_deep_merge(
             {
                 "cmd": jinja_globals.jinja_global_cmd,
+                "cwd": jinja_globals.jinja_global_cwd,
                 "env": jinja_globals.jinja_global_env,
                 "file": jinja_globals.jinja_global_file,
+                "uuid": jinja_globals.jinja_global_uuid,
             },
             {} if globals is None else globals,
         )
         self._filters = dict_deep_merge(
             {
+                "base64": jinja_filters.jinja_filter_base64,
+                "base64_decode": jinja_filters.jinja_filter_base64_decode,
+                "md5": jinja_filters.jinja_filter_md5,
                 "split_space": jinja_filters.jinja_filter_split_space,
+                "sha256": jinja_filters.jinja_filter_sha256,
+                "sha512": jinja_filters.jinja_filter_sha512,
             },
             {} if globals is None else globals,
         )

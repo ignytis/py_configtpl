@@ -1,5 +1,6 @@
 import os
 import subprocess
+import uuid
 
 
 def jinja_global_cmd(cmd: str) -> str:
@@ -18,6 +19,13 @@ def jinja_global_cmd(cmd: str) -> str:
         text=True
     )
     return result.stdout
+
+
+def jinja_global_cwd() -> str:
+    """
+    Returns the current working directory
+    """
+    return os.getcwd()
 
 
 def jinja_global_env(name: str, default: str | None = None) -> str | None:
@@ -40,3 +48,10 @@ def jinja_global_file(path: str) -> str:
     """
     with open(path, "r") as f:
         return f.read()
+
+
+def jinja_global_uuid() -> str:
+    """
+    Generates UUID
+    """
+    return str(uuid.uuid4())

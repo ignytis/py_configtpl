@@ -31,6 +31,13 @@ class TestStdFunccs(unittest.TestCase):
                 "Hello, Second!",
                 "Hello, Third!",
             ],
+            # Frequently used hash and encoding functions
+            "globals": {
+                "base64": "SGVsbG8sIFdvcmxk",
+                "base64_decode": "Lorem Ipsum",
+                "md5": "82bb413746aee42f89dea2b59614f9ef",
+                "sha512": "03675ac53ff9cd1535ccc7dfcdfa2c458c5218371f418dc136f2d19ac1fbe8a5"
+            },
             "server": {
                 "host": "example.com",
                 "port": 1234,
