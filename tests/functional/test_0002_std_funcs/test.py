@@ -16,6 +16,14 @@ class TestStdFunccs(unittest.TestCase):
         cfg = ConfigBuilder().build_from_files("config.cfg")
 
         self.assertDictEqual({
+            # file_contents are fetched using 'file' global.
+            # In this test it's relative path, but it could be also global path
+            "file_contents": {
+                "additional_level": {
+                    "var_a": 123,
+                    "var_b": False,
+                },
+            },
             # "greetings" is based on output of a system command splitted by line break
             # TODO: does it works on Windows! Perhaps another test is needed. As an option - OS check
             "greetings": [

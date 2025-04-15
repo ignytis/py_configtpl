@@ -24,6 +24,7 @@ class JinjaEnvFactory:
             {
                 "cmd": jinja_globals.jinja_global_cmd,
                 "env": jinja_globals.jinja_global_env,
+                "file": jinja_globals.jinja_global_file,
             },
             {} if globals is None else globals,
         )
