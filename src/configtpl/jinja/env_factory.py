@@ -1,4 +1,5 @@
 import jinja2
+from typing import Callable
 
 from configtpl.jinja import filters as jinja_filters
 from configtpl.jinja import globals as jinja_globals
@@ -39,10 +40,22 @@ class JinjaEnvFactory:
                 "sha256": jinja_filters.jinja_filter_sha256,
                 "sha512": jinja_filters.jinja_filter_sha512,
             },
-            {} if globals is None else globals,
+            {} if filters is None else filters,
         )
 
         self._fs_loader_cache = {}
+
+    def set_global(self, k: str, v: Callable) -> None:
+        """
+        Sets a global for children Jinja environments
+        """
+        self._globals[k] = v
+
+    def set_filter(self, k: str, v: Callable) -> None:
+        """
+        Sets a filter for children Jinja environments
+        """
+        self._filters[k] = v
 
     def get_fs_jinja_environment(self, dir: str) -> jinja2.Environment:
         """

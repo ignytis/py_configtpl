@@ -1,5 +1,6 @@
 from copy import deepcopy
 import os.path
+from typing import Callable
 import yaml
 
 from configtpl.utils.dicts import dict_deep_merge
@@ -11,6 +12,18 @@ class ConfigBuilder:
                  jinja_filters: dict | None = None):
         self.jinja_env_factory = JinjaEnvFactory(constructor_args=jinja_constructor_args, globals=jinja_globals,
                                                  filters=jinja_filters)
+
+    def set_global(self, k: str, v: Callable) -> None:
+        """
+        Sets a global for children Jinja environments
+        """
+        self.jinja_env_factory.set_global(k, v)
+
+    def set_filter(self, k: str, v: Callable) -> None:
+        """
+        Sets a filter for children Jinja environments
+        """
+        self.jinja_env_factory.set_filter(k, v)
 
     def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
                          overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
