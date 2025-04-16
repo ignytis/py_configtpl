@@ -71,10 +71,3 @@ class JinjaEnvFactory:
         self._fs_loader_cache[dir] = jinja_env
 
         return jinja_env
-
-    def get_template_from_str(self, work_dir: str) -> jinja2.Template:
-        jinja2.Template(globals=self._globals, filters=self._filters)
-        # jinja_env = jinja2.Environment(**self._constructor_args, loader=jinja2.DictLoader({}))
-        # jinja_env.globals.update(self._globals)
-        # jinja_env.filters.update(self._filters)
-        # return jinja_env

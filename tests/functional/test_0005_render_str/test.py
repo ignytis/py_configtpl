@@ -7,7 +7,12 @@ CFG = """\
 {% set domain = "example.com" %}
 domain: {{ domain }}
 subdomain: mysite.{{ domain }}
-
+sample_filter: {{ "abc" | md5 }}
+sample_global: {{ env("SAMPLE_ENV_KEY") }}
+file_content:
+    {{ file("file_cfg.yaml") | indent(2) }}
+file_content_2:
+    {% include "file_cfg.yaml" %}\
 """
 
 
@@ -25,6 +30,14 @@ class TestRenderStr(unittest.TestCase):
         self.assertDictEqual({
             "domain": "example.com",
             "subdomain": "mysite.example.com",
+            "sample_filter": "900150983cd24fb0d6963f7d28e17f72",
+            "sample_global": "sample_value",
+            "file_content": {
+                "file_key": "file_value",
+            },
+            "file_content_2": {
+                "file_key": "file_value",
+            }
         }, cfg)
 
 

@@ -83,6 +83,19 @@ class ConfigBuilder:
 
     def build_from_str(self, input: str, work_dir: str | None = None, defaults: dict | None = None,
                        overrides: dict | None = None) -> dict:
+        """
+        Renders config from string.
+        NB! This function does NOT resolve the directives currently
+
+        Args:
+            input (str): a Jinja template string which can be rendered into YAML format
+            work_dir (str): a working directory.
+                Include statements in Jinja template will be resolved relatively to this path
+            defaults (dict | None): Default values for configuration
+            overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
+        Returns:
+            dict: The rendered configuration
+        """
         if work_dir is None:
             work_dir = os.getcwd()
         output_cfg = {} if defaults is None else deepcopy(defaults)
