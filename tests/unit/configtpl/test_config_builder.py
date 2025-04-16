@@ -18,7 +18,7 @@ params:
   greeting: "Hello, {{ name }}!"
 
 "@configtpl":
-  load_next:
+  load_next_defer:
   - another_config.cfg
 """
 

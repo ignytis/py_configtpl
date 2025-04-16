@@ -1,10 +1,13 @@
 from copy import deepcopy
+import os
 import os.path
 from typing import Callable
 import yaml
 
 from configtpl.utils.dicts import dict_deep_merge
 from configtpl.jinja.env_factory import JinjaEnvFactory
+
+DEFAULT_DIRECTIVE_KEY = "@configtpl"
 
 
 class ConfigBuilder:
@@ -26,7 +29,7 @@ class ConfigBuilder:
         self.jinja_env_factory.set_filter(k, v)
 
     def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
-                         overrides: dict | None = None, directives_key: str | None = "@configtpl") -> dict:
+                         overrides: dict | None = None, directives_key: str | None = DEFAULT_DIRECTIVE_KEY) -> dict:
         """
         Renders files from provided paths.
 
@@ -45,7 +48,6 @@ class ConfigBuilder:
         output_cfg = {} if defaults is None else deepcopy(defaults)
         if overrides is None:
             overrides = {}
-
         # Convert the path input into list of paths
         paths_colon_separated: list[str] = [paths_colon_separated] \
             if isinstance(paths_colon_separated, str) \
@@ -61,7 +63,7 @@ class ConfigBuilder:
             if cfg_path in loaded_configs:
                 raise Exception(f"Attempt to load '{cfg_path}' config multiple times. An exception is thrown "
                                 "to prevent from infinite recursion")
-            cfg_iter: dict = self._render_jinja_yaml_config(cfg_path, output_cfg)
+            cfg_iter: dict = self._render_cfg_from_file(cfg_path, output_cfg)
             loaded_configs.append(cfg_path)
 
             # Apply the config lib directives
@@ -69,7 +71,7 @@ class ConfigBuilder:
             if directives is not None:
                 # Inject the next templates to load. Consider path to current config
                 new_paths = [os.path.realpath(os.path.join(cfg_dir, p))
-                             for p in directives.get("load_next", [])]
+                             for p in directives.get("load_next_defer", [])]
                 paths += new_paths
                 del cfg_iter[directives_key]
 
@@ -77,10 +79,21 @@ class ConfigBuilder:
 
         # Append overrides
         output_cfg = dict_deep_merge(output_cfg, overrides)
-
         return output_cfg
 
-    def _render_jinja_yaml_config(self, path: str, ctx: dict) -> dict:
+    def build_from_str(self, input: str, work_dir: str | None = None, defaults: dict | None = None,
+                       overrides: dict | None = None) -> dict:
+        if work_dir is None:
+            work_dir = os.getcwd()
+        output_cfg = {} if defaults is None else deepcopy(defaults)
+        if overrides is None:
+            overrides = {}
+
+        cfg = self._render_cfg_from_str(input, output_cfg, work_dir)
+        output_cfg = dict_deep_merge(cfg, overrides)
+        return output_cfg
+
+    def _render_cfg_from_file(self, path: str, ctx: dict) -> dict:
         """
         Renders a template file into config dictionary in two steps:
         1. Renders a file as Jinja template
@@ -90,5 +103,11 @@ class ConfigBuilder:
         filename = os.path.basename(path)
         jinja_env = self.jinja_env_factory.get_fs_jinja_environment(dir)
         tpl = jinja_env.get_template(filename)
+        tpl_rendered = tpl.render(ctx)
+        return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
+
+    def _render_cfg_from_str(self, input: str, ctx: dict, work_dir: str) -> dict:
+        jinja_env = self.jinja_env_factory.get_fs_jinja_environment(work_dir)
+        tpl = jinja_env.from_string(input)
         tpl_rendered = tpl.render(ctx)
         return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
