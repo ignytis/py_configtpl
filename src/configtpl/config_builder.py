@@ -81,16 +81,7 @@ class ConfigBuilder:
             ctx = {**output_cfg, **ctx}
             cfg_iter: dict = self._render_cfg_from_file(cfg_path, ctx)
             loaded_configs.append(cfg_path)
-
-            # Apply the config lib directives
-            directives: dict | None = cfg_iter.get(self.directives_key)
-            if directives is not None:
-                # Inject the next templates to load. Consider path to current config
-                # TODO: an opposite directive. load_before? base? It might call this function recursively
-                new_paths = [os.path.realpath(os.path.join(cfg_dir, p))
-                             for p in directives.get("load_next_defer", [])]
-                paths += new_paths
-                del cfg_iter[self.directives_key]
+            self._apply_directives(cfg_iter, cfg_dir, paths)
 
             output_cfg = dict_deep_merge(output_cfg, cfg_iter)
 
@@ -142,3 +133,19 @@ class ConfigBuilder:
         tpl = jinja_env.from_string(input)
         tpl_rendered = tpl.render(ctx)
         return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
+
+    def _apply_directives(self, config: dict, cfg_dir: str, paths: list[str]) -> None:
+        """
+        Applies configuration directives
+        """
+        directives: dict | None = config.get(self.directives_key)
+        if directives is None:
+            return
+
+        # Inject the next templates to load. Consider path to current config
+        # TODO: an opposite directive. load_before? base? It might call this function recursively
+        for p in directives.get("load_next_defer", []):
+            real_path = os.path.realpath(os.path.join(cfg_dir, p))
+            paths.append(real_path)
+
+        del config[self.directives_key]
