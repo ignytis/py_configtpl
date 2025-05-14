@@ -12,7 +12,8 @@ class TestCombinedCfg(unittest.TestCase):
         return super().setUp()
 
     def test_combined_cfg(self):
-        cfg = ConfigBuilder().build_from_files("config_01.cfg:config_02.cfg")
+        cfg = ConfigBuilder().build_from_files("config_01.cfg:config_02.cfg",
+                                               ctx={"my_context_dict": {"ctx_param": 1234}})
 
         self.assertDictEqual({
             "urls": {

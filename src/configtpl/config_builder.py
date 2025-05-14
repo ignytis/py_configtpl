@@ -12,9 +12,23 @@ DEFAULT_DIRECTIVE_KEY = "@configtpl"
 
 class ConfigBuilder:
     def __init__(self, jinja_constructor_args: dict | None = None, jinja_globals: dict | None = None,
-                 jinja_filters: dict | None = None):
+                 jinja_filters: dict | None = None, defaults: dict | None = None,
+                 directives_key: str | None = DEFAULT_DIRECTIVE_KEY):
+        """
+        A constructor for Cofnig Builder.
+
+        Args:
+            constructor_args (dict | None): argument for Jinja environment constructor
+            globals (dict | None): globals to inject into Jinja environment
+            defaults (dict | None): Default values for configuration
+            directives_key (str | None): parameter key for library directives. If None, no directives will be processed
+        """
         self.jinja_env_factory = JinjaEnvFactory(constructor_args=jinja_constructor_args, globals=jinja_globals,
                                                  filters=jinja_filters)
+        if defaults is None:
+            defaults = {}
+        self.defaults = defaults
+        self.directives_key = directives_key
 
     def set_global(self, k: str, v: Callable) -> None:
         """
@@ -28,24 +42,25 @@ class ConfigBuilder:
         """
         self.jinja_env_factory.set_filter(k, v)
 
-    def build_from_files(self, paths_colon_separated: str | list[str], defaults: dict | None = None,
-                         overrides: dict | None = None, directives_key: str | None = DEFAULT_DIRECTIVE_KEY) -> dict:
+    def build_from_files(self, paths_colon_separated: str | list[str], overrides: dict | None = None,
+                         ctx: dict | None = None) -> dict:
         """
         Renders files from provided paths.
 
         Args:
+            ctx (dict | None): additional rendering context which is NOT injected into configuration
+            overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
             paths_colon_separated (str | list[str]): Paths to configuration files.
                 It might be a single item (str) or list of paths (list(str)).
                 Additionally, each path might be colon-separated.
                 Examples: '/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg',
                 ['/opt/myapp/myconfig.cfg', '/opt/myapp/myconfig_first.cfg:/opt/myapp/myconfig_second.cfg']
-            defaults (dict | None): Default values for configuration
-            overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
-            directives_key (str | None): parameter key for library directives. If None, no directives will be processed
         Returns:
             dict: The rendered configuration
         """
-        output_cfg = {} if defaults is None else deepcopy(defaults)
+        output_cfg = deepcopy(self.defaults)
+        if ctx is None:
+            ctx = {}
         if overrides is None:
             overrides = {}
         # Convert the path input into list of paths
@@ -63,17 +78,19 @@ class ConfigBuilder:
             if cfg_path in loaded_configs:
                 raise Exception(f"Attempt to load '{cfg_path}' config multiple times. An exception is thrown "
                                 "to prevent from infinite recursion")
-            cfg_iter: dict = self._render_cfg_from_file(cfg_path, output_cfg)
+            ctx = {**output_cfg, **ctx}
+            cfg_iter: dict = self._render_cfg_from_file(cfg_path, ctx)
             loaded_configs.append(cfg_path)
 
             # Apply the config lib directives
-            directives: dict | None = cfg_iter.get(directives_key)
+            directives: dict | None = cfg_iter.get(self.directives_key)
             if directives is not None:
                 # Inject the next templates to load. Consider path to current config
+                # TODO: an opposite directive. load_before? base? It might call this function recursively
                 new_paths = [os.path.realpath(os.path.join(cfg_dir, p))
                              for p in directives.get("load_next_defer", [])]
                 paths += new_paths
-                del cfg_iter[directives_key]
+                del cfg_iter[self.directives_key]
 
             output_cfg = dict_deep_merge(output_cfg, cfg_iter)
 
@@ -96,6 +113,7 @@ class ConfigBuilder:
         Returns:
             dict: The rendered configuration
         """
+        # TODO: load it the same way as build_from_files - use files stack, apply directives, etc
         if work_dir is None:
             work_dir = os.getcwd()
         output_cfg = {} if defaults is None else deepcopy(defaults)
