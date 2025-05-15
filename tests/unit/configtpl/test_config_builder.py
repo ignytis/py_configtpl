@@ -16,15 +16,6 @@ FILE_CONFIG_CONTENTS_COMPOSITE_FIRST = """\
 params:
   user_name: {{ name }}
   greeting: "Hello, {{ name }}!"
-
-"@configtpl":
-  load_next_defer:
-  - another_config.cfg
-"""
-
-FILE_CONFIG_CONTENTS_COMPOSITE_SECOND = """\
-some_paths:
-- /home/{{ params.user_name | lower }}
 """
 
 CONFIG_COMPILED_SIMPLE = {
@@ -68,15 +59,11 @@ class CompilerTest(TestCase):
 
     @patch("builtins.open", new_callable=mock_open, read_data=FILE_CONFIG_CONTENTS_COMPOSITE_FIRST)
     def test_compile_composite(self, mock_file, _b, _c, _d, _e) -> None:
-        handlers = (mock_file.return_value, mock_open(read_data=FILE_CONFIG_CONTENTS_COMPOSITE_SECOND).return_value)
-        mock_file.side_effect = handlers
-
         self.assertDictEqual({
             "params": {
                 "user_name": "John",
                 "greeting": "Hello, John!",
             },
-            "some_paths": ["/home/john"],
         }, get_instance().build_from_files("/test/sample.cfg"))
 
 

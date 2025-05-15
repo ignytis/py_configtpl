@@ -7,13 +7,10 @@ import yaml
 from configtpl.utils.dicts import dict_deep_merge
 from configtpl.jinja.env_factory import JinjaEnvFactory
 
-DEFAULT_DIRECTIVE_KEY = "@configtpl"
-
 
 class ConfigBuilder:
     def __init__(self, jinja_constructor_args: dict | None = None, jinja_globals: dict | None = None,
-                 jinja_filters: dict | None = None, defaults: dict | None = None,
-                 directives_key: str | None = DEFAULT_DIRECTIVE_KEY):
+                 jinja_filters: dict | None = None, defaults: dict | None = None):
         """
         A constructor for Cofnig Builder.
 
@@ -21,14 +18,12 @@ class ConfigBuilder:
             constructor_args (dict | None): argument for Jinja environment constructor
             globals (dict | None): globals to inject into Jinja environment
             defaults (dict | None): Default values for configuration
-            directives_key (str | None): parameter key for library directives. If None, no directives will be processed
         """
         self.jinja_env_factory = JinjaEnvFactory(constructor_args=jinja_constructor_args, globals=jinja_globals,
                                                  filters=jinja_filters)
         if defaults is None:
             defaults = {}
         self.defaults = defaults
-        self.directives_key = directives_key
 
     def set_global(self, k: str, v: Callable) -> None:
         """
@@ -71,17 +66,10 @@ class ConfigBuilder:
         for path_colon_separated in paths_colon_separated:
             paths += path_colon_separated.split(":")
 
-        loaded_configs = []
-        while len(paths) > 0:
-            cfg_path = os.path.realpath(paths.pop(0))
-            cfg_dir = os.path.dirname(cfg_path)
-            if cfg_path in loaded_configs:
-                raise Exception(f"Attempt to load '{cfg_path}' config multiple times. An exception is thrown "
-                                "to prevent from infinite recursion")
+        for cfg_path in paths:
+            cfg_path = os.path.realpath(cfg_path)
             ctx = {**output_cfg, **ctx}
             cfg_iter: dict = self._render_cfg_from_file(cfg_path, ctx)
-            loaded_configs.append(cfg_path)
-            self._apply_directives(cfg_iter, cfg_dir, paths)
 
             output_cfg = dict_deep_merge(output_cfg, cfg_iter)
 
@@ -93,7 +81,6 @@ class ConfigBuilder:
                        overrides: dict | None = None) -> dict:
         """
         Renders config from string.
-        NB! This function does NOT resolve the directives currently
 
         Args:
             input (str): a Jinja template string which can be rendered into YAML format
@@ -104,7 +91,6 @@ class ConfigBuilder:
         Returns:
             dict: The rendered configuration
         """
-        # TODO: load it the same way as build_from_files - use files stack, apply directives, etc
         if work_dir is None:
             work_dir = os.getcwd()
         output_cfg = {} if defaults is None else deepcopy(defaults)
@@ -133,19 +119,3 @@ class ConfigBuilder:
         tpl = jinja_env.from_string(input)
         tpl_rendered = tpl.render(ctx)
         return yaml.load(tpl_rendered, Loader=yaml.FullLoader)
-
-    def _apply_directives(self, config: dict, cfg_dir: str, paths: list[str]) -> None:
-        """
-        Applies configuration directives
-        """
-        directives: dict | None = config.get(self.directives_key)
-        if directives is None:
-            return
-
-        # Inject the next templates to load. Consider path to current config
-        # TODO: an opposite directive. load_before? base? It might call this function recursively
-        for p in directives.get("load_next_defer", []):
-            real_path = os.path.realpath(os.path.join(cfg_dir, p))
-            paths.append(real_path)
-
-        del config[self.directives_key]
