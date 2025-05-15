@@ -28,7 +28,7 @@ def jinja_global_cwd() -> str:
     return os.getcwd()
 
 
-def jinja_global_env(name: str, default: str | None = None) -> str | None:
+def jinja_global_env(name: str, default: str | None = "") -> str | None:
     """
     Returns value of an environment variable
 
@@ -36,7 +36,10 @@ def jinja_global_env(name: str, default: str | None = None) -> str | None:
         name (str): name of environment variable
         default (str | None): a default value to return
     """
-    return os.getenv(name, default)
+    v = os.getenv(name, default)
+    if v is None:
+        raise ValueError(f"An environment variable '{name}' is not set and no default value is provided.")
+    return v
 
 
 def jinja_global_file(path: str) -> str:
