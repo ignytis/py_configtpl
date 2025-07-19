@@ -78,7 +78,7 @@ class ConfigBuilder:
         return output_cfg
 
     def build_from_str(self, input: str, work_dir: str | None = None, defaults: dict | None = None,
-                       overrides: dict | None = None) -> dict:
+                       ctx: dict | None = None, overrides: dict | None = None) -> dict:
         """
         Renders config from string.
 
@@ -87,6 +87,7 @@ class ConfigBuilder:
             work_dir (str): a working directory.
                 Include statements in Jinja template will be resolved relatively to this path
             defaults (dict | None): Default values for configuration
+            ctx (dict | None): additional rendering context which is NOT injected into configuration
             overrides (dict | None): Overrides are applied at the very end stage after all templates are rendered
         Returns:
             dict: The rendered configuration
@@ -94,10 +95,12 @@ class ConfigBuilder:
         if work_dir is None:
             work_dir = os.getcwd()
         output_cfg = {} if defaults is None else deepcopy(defaults)
+        if ctx is None:
+            ctx = {}
         if overrides is None:
             overrides = {}
 
-        cfg = self._render_cfg_from_str(input, output_cfg, work_dir)
+        cfg = self._render_cfg_from_str(input, ctx, work_dir)
         output_cfg = dict_deep_merge(cfg, overrides)
         return output_cfg
 
